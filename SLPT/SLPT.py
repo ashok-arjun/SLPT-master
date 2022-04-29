@@ -56,29 +56,29 @@ class Sparse_alignment_network(nn.Module):
             if p.dim() > 1:
                 nn.init.xavier_uniform_(p)
 
-    def forward(self, image):
-        bs = image.size(0)
+    def forward(self, image): # image: (B, 3, 256, 256)
+        bs = image.size(0) # (B)
 
         output_list = []
 
-        feature_map = self.backbone(image)
+        feature_map = self.backbone(image) # (B, 256, 64, 64)
 
-        initial_landmarks = self.initial_points.repeat(bs, 1, 1).to(image.device)
+        initial_landmarks = self.initial_points.repeat(bs, 1, 1).to(image.device) # (B, 98, 2)
 
         # stage_1
-        ROI_anchor_1, bbox_size_1, start_anchor_1 = self.ROI_1(initial_landmarks.detach())
-        ROI_anchor_1 = ROI_anchor_1.view(bs, self.num_point * self.Sample_num * self.Sample_num, 2)
+        ROI_anchor_1, bbox_size_1, start_anchor_1 = self.ROI_1(initial_landmarks.detach()) # (B, 98, 7, 7, 2), (B, 98, 2), (B, 98, 2)
+        ROI_anchor_1 = ROI_anchor_1.view(bs, self.num_point * self.Sample_num * self.Sample_num, 2) # (B, 98 * 7 * 7, 2)
         ROI_feature_1 = self.interpolation(feature_map, ROI_anchor_1.detach()).view(bs, self.num_point, self.Sample_num,
-                                                                            self.Sample_num, self.d_model)
+                                                                            self.Sample_num, self.d_model) # (B, 98, 7, 7, 256)
         ROI_feature_1 = ROI_feature_1.view(bs * self.num_point, self.Sample_num, self.Sample_num,
-                                     self.d_model).permute(0, 3, 2, 1)
+                                     self.d_model).permute(0, 3, 2, 1)  # (B * 98, 256, 7, 7)
 
-        transformer_feature_1 = self.feature_extractor(ROI_feature_1).view(bs, self.num_point, self.d_model)
+        transformer_feature_1 = self.feature_extractor(ROI_feature_1).view(bs, self.num_point, self.d_model) # (B, 98, 256) --> 256 dim features for each landmark
 
-        offset_1 = self.Transformer(transformer_feature_1)
-        offset_1 = self.out_layer(offset_1)
+        offset_1 = self.Transformer(transformer_feature_1) # (B, 6, 98, 256)
+        offset_1 = self.out_layer(offset_1) # (B, 6, 98, 2)
 
-        landmarks_1 = start_anchor_1.unsqueeze(1) + bbox_size_1.unsqueeze(1) * offset_1
+        landmarks_1 = start_anchor_1.unsqueeze(1) + bbox_size_1.unsqueeze(1) * offset_1 # (B, 6, 98, 2)
         output_list.append(landmarks_1)
 
         # stage_2

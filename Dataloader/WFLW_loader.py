@@ -16,9 +16,6 @@ class WFLW_test_Dataset(Dataset):
         self.number_landmarks = cfg.WFLW.NUM_POINT
         self.Fraction = cfg.WFLW.FRACTION
 
-        self.flip_index = np.genfromtxt(os.path.join(self.root, "Mirror.txt"),
-                                        dtype=int, delimiter=',')
-
         self.Transform = transform
 
         # Path to dataset
@@ -95,4 +92,4 @@ class WFLW_test_Dataset(Dataset):
         if self.Transform is not None:
             input = self.Transform(input)
 
-        return input, meta
+        return input, meta, Annotated_Points, trans

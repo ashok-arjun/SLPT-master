@@ -24,6 +24,7 @@ def parse_args():
     parser.add_argument('--logDir', help='log directory', type=str, default='./log')
     parser.add_argument('--dataDir', help='data directory', type=str, default='./')
     parser.add_argument('--prevModelDir', help='prev Model directory', type=str, default=None)
+    parser.add_argument('--batchSize', help='batch size', type=int, default=1)
 
     args = parser.parse_args()
 
@@ -62,6 +63,7 @@ def main_function():
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
 
+    # NUM_POINT is 98, OUT_DIM is 256, NUM_DECODER is 6
     model = Sparse_alignment_network(cfg.WFLW.NUM_POINT, cfg.MODEL.OUT_DIM,
                                     cfg.MODEL.TRAINABLE, cfg.MODEL.INTER_LAYER,
                                     cfg.MODEL.DILATION, cfg.TRANSFORMER.NHEAD,
@@ -83,7 +85,7 @@ def main_function():
 
     valid_loader = torch.utils.data.DataLoader(
         valid_dataset,
-        batch_size = 1,
+        batch_size = args.batchSize,
         shuffle=False,
         num_workers=0,
         pin_memory=cfg.PIN_MEMORY
@@ -102,23 +104,37 @@ def main_function():
     error_list = []
 
     with torch.no_grad():
-        for i, (input, meta) in enumerate(valid_loader):
+        for i, (input, meta, Annotated_Points, Trans) in enumerate(valid_loader):
 
-            Annotated_Points = meta['Annotated_Points'].numpy()[0]
-            Trans = meta['trans'].numpy()[0]
+            # Annotated_Points = meta['Annotated_Points'].numpy()[0]
+            # Trans = meta['trans'].numpy()[0]
+
+            if args.batchSize == 1:
+                Annotated_Points = Annotated_Points.numpy()[0]
+                Trans = Trans.numpy()[0]
+
+            print(input.shape)
+            print(Annotated_Points.shape)
+            print(Trans.shape)
 
             outputs_initial = model(input.cuda())
 
+            print([x.shape for x in outputs_initial])
+
             output = outputs_initial[2][0, -1, :, :].cpu().numpy()
+
+            print(output.shape)
 
             error = calcuate_loss(cfg.DATASET.DATASET, output * cfg.MODEL.IMG_SIZE, Annotated_Points, Trans)
 
-            msg = 'Epoch: [{0}/{1}]\t' \
+            msg = 'Batch: [{0}/{1}]\t' \
                   'NME: {error:.3f}%\t'.format(
                 i, len(valid_loader), error=error*100.0)
 
             print(msg)
             error_list.append(error)
+
+            break
 
         print("finished")
         print("Mean Error: {:.3f}".format((np.mean(np.array(error_list)) * 100.0)))
