@@ -14,6 +14,9 @@ import pprint
 
 import torchvision.transforms as transforms
 
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train Sparse Facial Network')
@@ -113,17 +116,15 @@ def main_function():
                 Annotated_Points = Annotated_Points.numpy()[0]
                 Trans = Trans.numpy()[0]
 
-            print(input.shape)
-            print(Annotated_Points.shape)
-            print(Trans.shape)
+            print("Input:", input.shape)
+            print("Annotated Points:", Annotated_Points.shape)
+            print("Trans:", Trans.shape)
 
             outputs_initial = model(input.cuda())
 
-            print([x.shape for x in outputs_initial])
-
             output = outputs_initial[2][0, -1, :, :].cpu().numpy()
 
-            print(output.shape)
+            print("Output", output.shape)
 
             error = calcuate_loss(cfg.DATASET.DATASET, output * cfg.MODEL.IMG_SIZE, Annotated_Points, Trans)
 
@@ -134,9 +135,7 @@ def main_function():
             print(msg)
             error_list.append(error)
 
-            break
-
-        print("finished")
+        print("Finished")
         print("Mean Error: {:.3f}".format((np.mean(np.array(error_list)) * 100.0)))
 
 if __name__ == '__main__':
