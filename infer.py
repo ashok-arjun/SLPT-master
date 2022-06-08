@@ -37,8 +37,10 @@ def parse_args():
   parser.add_argument('--targetDir', type=str, required=True)
   parser.add_argument('--numWorkers', type=int, required=8)
   parser.add_argument('--demo', action='store_true')
+  parser.add_argument('--demo_count', type=int)
   parser.add_argument('--demo_dir', type=str, required=True)
   parser.add_argument('--glob', type=str, default='*/*.jpg')
+  parser.add_argument('--print_args', action='store_true')
 
   args = parser.parse_args()
 
@@ -67,12 +69,14 @@ def main_function():
 
   args = parse_args()
   update_config(cfg, args)
-  pprint.pprint(args)
+  if args.print_args:
+    pprint.pprint(args)
 
   # create logger
   logger = create_logger(cfg)
-  logger.info(pprint.pformat(args))
-  logger.info(cfg)
+  if args.print_args:
+    logger.info(pprint.pformat(args))
+    logger.info(cfg)
 
   torch.backends.cudnn.benchmark = cfg.CUDNN.BENCHMARK
   torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
@@ -90,6 +94,7 @@ def main_function():
       mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
   )
 
+  print("Data directory:", args.dataDir)
   valid_dataset = CustomDataset(
       cfg, args.dataDir,
       transforms.Compose([
@@ -165,6 +170,8 @@ def main_function():
     print("Writing demo images...")
 
     indexes = list(range(len(paths)))
+    if args.demo_count:
+      indexes = indexes[:args.demo_count]
 
     os.makedirs(args.demo_dir, exist_ok=True)
 
