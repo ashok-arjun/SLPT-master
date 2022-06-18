@@ -139,7 +139,7 @@ def main_function():
   outputs = np.concatenate(outputs, axis=0)
   paths = np.concatenate(paths, axis=0)
 
-  print("Writing landmarks to disk...")
+  print("Writing landmarks to disk at %s" % (args.targetDir))
   for i, (path, output) in enumerate(zip(paths, outputs)):
       imgname = Path(path).name
       imgNameRoot, imgNameExtension = os.path.basename(path).split('.')
@@ -151,7 +151,6 @@ def main_function():
       targetDir = os.path.join(args.targetDir, remainingPath)
       os.makedirs(targetDir, exist_ok=True)
 
-      print("Saving landmark %i to %s" % (i, targetDir))
       file = open(os.path.join(targetDir, imgNameRoot+".txt"), "w")
             
       for j, row in enumerate(output):
